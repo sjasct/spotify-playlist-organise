@@ -41,11 +41,23 @@ public class PlaylistOrganiserJob : IJob
         var archivePlaylist = await client.GetPlaylistItems(_config.Value.Organiser.Archive);
         var freshPlaylist = await client.GetPlaylistItems(_config.Value.Organiser.Fresh);
 
-        var newItems = allOriginItems.Where(track => track.NotIn(combinedPlaylist));
+        var newItems = allOriginItems.Where(track => track.NotIn(combinedPlaylist)).ToList();
 
         await client.AddToPlaylist(_config.Value.Organiser.Combined, newItems);
         await client.AddToPlaylist(_config.Value.Organiser.Archive, allOriginItems.Where(track => track.NotIn(archivePlaylist)));
         await client.RemoveFromPlaylist(_config.Value.Organiser.Combined, combinedPlaylist.Where(track => track.NotIn(allOriginItems)));
+
+        var freshItems = newItems.OrderByDescending(x => x.AddedAt).Where(x => x.NotIn(freshPlaylist)).ToList();
+
+        if (freshItems.Count > _config.Value.Organiser.FreshLimit)
+        {
+            freshItems = freshItems.Take(_config.Value.Organiser.FreshLimit).ToList();
+        }
+
+        var unfreshItems = freshPlaylist.OrderBy(x => x.AddedAt).Take(freshItems.Count);
+
+        await client.RemoveFromPlaylist(_config.Value.Organiser.Fresh, unfreshItems);
+        await client.AddToPlaylist(_config.Value.Organiser.Fresh, freshItems);
         
         _logger.LogInformation("Done");
     }
