@@ -23,6 +23,8 @@ public class PlaylistOrganiserJob : IJob
     
     public async Task Execute(IJobExecutionContext context)
     {
+        _logger.LogInformation("Starting");
+        
         var client = _spotifyFactory.CreateClient();
 
         if (client is null)

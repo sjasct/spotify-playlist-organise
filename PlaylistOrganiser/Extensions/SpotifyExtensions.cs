@@ -55,9 +55,12 @@ public static class SpotifyExtensions
 
     public static async Task<List<PlaylistTrack<FullTrack>>> GetPlaylistItems(this SpotifyClient client, string playlistId)
     {
-        var playlist = await client.Playlists.Get(playlistId);
-        var items = playlist.Tracks != null
-            ? (await client.PaginateAll(playlist.Tracks)).AsFullTracks()
+        var playlist = await client.Playlists.GetItems(playlistId, new PlaylistGetItemsRequest()
+        {
+            Fields = { "next, items(added_on, track(id,type,uri))" }
+        });
+        var items = playlist != null
+            ? (await client.PaginateAll(playlist)).AsFullTracks()
             : new List<PlaylistTrack<FullTrack>>();
         return items;
     }
