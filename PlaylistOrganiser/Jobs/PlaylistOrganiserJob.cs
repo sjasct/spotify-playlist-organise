@@ -34,42 +34,19 @@ public class PlaylistOrganiserJob : IJob
         var allOriginItems = new List<PlaylistTrack<FullTrack>>();
         foreach (var originId in _config.Value.Organiser.Origins)
         {
-            var playlist = await client.Playlists.Get(originId);
-            _logger.LogInformation($"Got basic info for playlist {originId} '{playlist.Name}'");
-
-            if (playlist.Tracks is null)
-            {
-                _logger.LogInformation($"Playlist '{playlist.Name}' has no tracks");
-                continue;
-            }
-            
-            var items = await client.PaginateAll(playlist.Tracks);
-            allOriginItems.AddRange(items.AsFullTracks());
+            allOriginItems.AddRange(await client.GetPlaylistItems(originId));
         }
 
-        var combinedPlaylist = await client.Playlists.Get(_config.Value.Organiser.Combined);
-        _logger.LogInformation($"Got basic info for FULL playlist '{combinedPlaylist.Name}'");
+        var combinedPlaylist = await client.GetPlaylistItems(_config.Value.Organiser.Combined);
+        var archivePlaylist = await client.GetPlaylistItems(_config.Value.Organiser.Archive);
+        var freshPlaylist = await client.GetPlaylistItems(_config.Value.Organiser.Fresh);
 
-        var combinedItems = combinedPlaylist.Tracks != null
-            ? (await client.PaginateAll(combinedPlaylist.Tracks)).AsFullTracks()
-            : new List<PlaylistTrack<FullTrack>>();
+        var newItems = allOriginItems.Where(track => track.NotIn(combinedPlaylist));
 
-        foreach (var item in allOriginItems)
-        {
-            _logger.LogInformation($"Track ID: '{item.Track.Id}' Name: '{item.Track.Name}' Artists: {string.Join(',', item.Track.Artists.Select(x => x.Name))}");
-        }
-
-        var notInCombined = allOriginItems.Where(x => combinedItems.All(y => y.Track.Id != x.Track.Id)).ToList();
-
-        if (notInCombined.Any())
-        {
-            foreach (var addChunk in notInCombined.Chunk(100))
-            {
-                await client.Playlists.AddItems(combinedPlaylist.Id,
-                    new PlaylistAddItemsRequest(addChunk.Select(x => x.Track.Uri).ToList()));
-            }
-        }
-
+        await client.AddToPlaylist(_config.Value.Organiser.Combined, newItems);
+        await client.AddToPlaylist(_config.Value.Organiser.Archive, allOriginItems.Where(track => track.NotIn(archivePlaylist)));
+        await client.RemoveFromPlaylist(_config.Value.Organiser.Combined, combinedPlaylist.Where(track => track.NotIn(allOriginItems)));
         
+        _logger.LogInformation("Done");
     }
 }
