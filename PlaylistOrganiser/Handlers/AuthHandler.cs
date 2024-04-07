@@ -6,6 +6,8 @@ namespace PlaylistOrganiser.Handlers;
 
 public class AuthHandler(IOptions<AppConfig> config)
 {
+    private AuthorizationCodeTokenResponse? _tokens;
+    
     public Uri GetAuthUrl()
     {
         var request = new LoginRequest(GetRedirectUri(), config.Value.ApiCredentials.ClientId, LoginRequest.ResponseType.Code)
@@ -22,11 +24,15 @@ public class AuthHandler(IOptions<AppConfig> config)
     
     public async Task ExchangeCode(string code)
     {
-        var response = await new OAuthClient().RequestToken(
+        _tokens = await new OAuthClient().RequestToken(
             new AuthorizationCodeTokenRequest(config.Value.ApiCredentials.ClientId, config.Value.ApiCredentials.Secret, code, GetRedirectUri())
         );
+    }
 
-        var bp = 1;
+    // todo: better way of storing and getting tokens
+    public AuthorizationCodeTokenResponse? GetTokens()
+    {
+        return _tokens;
     }
 
     private Uri GetRedirectUri()

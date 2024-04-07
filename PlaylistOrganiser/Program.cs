@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PlaylistOrganiser;
+using PlaylistOrganiser.Factories;
 using PlaylistOrganiser.Handlers;
 using PlaylistOrganiser.Models.Configuration;
 
@@ -7,7 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHostedService<Worker>();
 
-builder.Services.AddScoped<AuthHandler>();
+builder.Services.AddSingleton<AuthHandler>();
+builder.Services.AddSingleton<SpotifyClientFactory>();
 
 builder.Services.Configure<AppConfig>(builder.Configuration.GetSection("Config"));
 
