@@ -1,0 +1,6 @@
+﻿services:
+  playlistorganiser:
+    image: playlistorganiser
+    build:
+      context: .
+      dockerfile: PlaylistOrganiser/Dockerfile
