@@ -1,15 +1,23 @@
 using Microsoft.AspNetCore.Mvc;
-using PlaylistOrganiser;
+using PlaylistOrganiser.Extensions;
 using PlaylistOrganiser.Factories;
 using PlaylistOrganiser.Handlers;
+using PlaylistOrganiser.Jobs;
 using PlaylistOrganiser.Models.Configuration;
+using Quartz;
+using Quartz.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddHostedService<Worker>();
+
+builder.Services.AddQuartz(q =>
+{
+    q.AddJobAndTrigger<PlaylistOrganiserJob>("PlaylistOrganiser");
+});
+builder.Services.AddQuartzServer(q => q.WaitForJobsToComplete = true);
 
 builder.Services.AddSingleton<AuthHandler>();
-builder.Services.AddSingleton<SpotifyClientFactory>();
+builder.Services.AddScoped<SpotifyClientFactory>();
 
 builder.Services.Configure<AppConfig>(builder.Configuration.GetSection("Config"));
 
