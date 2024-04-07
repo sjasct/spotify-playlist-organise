@@ -17,6 +17,7 @@ public class SpotifyClientFactory(AuthHandler authHandler, IOptions<AppConfig> c
 
         return new SpotifyClient(SpotifyClientConfig
             .CreateDefault()
+            .WithRetryHandler(new SimpleRetryHandler{RetryAfter = TimeSpan.FromSeconds(2), RetryTimes = 5})
             .WithAuthenticator(new AuthorizationCodeAuthenticator(config.Value.ApiCredentials.ClientId,
                 config.Value.ApiCredentials.Secret, tokens)));
     }
